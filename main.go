@@ -69,6 +69,7 @@ func main() {
 		country  = fs.StringEnumLong("country", fmt.Sprintf("psiphon country code (valid values: %s)", psiphonCountries), psiphonCountries...)
 		scan     = fs.BoolLong("scan", "enable warp scanning")
 		rtt      = fs.DurationLong("rtt", 1000*time.Millisecond, "scanner rtt limit")
+		wgConf   = fs.StringLong("wgconf", "", "path to a normal wireguard config")
 		_        = fs.String('c', "config", "", "path to config file")
 	)
 
@@ -111,10 +112,11 @@ func main() {
 	}
 
 	opts := app.WarpOptions{
-		Bind:     bindAddrPort,
-		Endpoint: *endpoint,
-		License:  *key,
-		Gool:     *gool,
+		Bind:            bindAddrPort,
+		Endpoint:        *endpoint,
+		License:         *key,
+		Gool:            *gool,
+		WireguardConfig: *wgConf,
 	}
 
 	if *psiphon {

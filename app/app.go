@@ -16,12 +16,13 @@ const singleMTU = 1330
 const doubleMTU = 1280 // minimum mtu for IPv6, may cause frag reassembly somewhere
 
 type WarpOptions struct {
-	Bind     netip.AddrPort
-	Endpoint string
-	License  string
-	Psiphon  *PsiphonOptions
-	Gool     bool
-	Scan     *wiresocks.ScanOptions
+	Bind            netip.AddrPort
+	Endpoint        string
+	License         string
+	Psiphon         *PsiphonOptions
+	Gool            bool
+	Scan            *wiresocks.ScanOptions
+	WireguardConfig string
 }
 
 type PsiphonOptions struct {
@@ -29,6 +30,14 @@ type PsiphonOptions struct {
 }
 
 func RunWarp(ctx context.Context, l *slog.Logger, opts WarpOptions) error {
+	if opts.WireguardConfig != "" {
+		if err := runWireguard(ctx, l, opts.Bind, opts.WireguardConfig); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	if opts.Psiphon != nil && opts.Gool {
 		return errors.New("can't use psiphon and gool at the same time")
 	}
@@ -80,13 +89,14 @@ func RunWarp(ctx context.Context, l *slog.Logger, opts WarpOptions) error {
 }
 
 func runWarp(ctx context.Context, l *slog.Logger, bind netip.AddrPort, endpoint string) error {
-	conf, err := wiresocks.ParseConfig("./stuff/primary/wgcf-profile.ini", endpoint)
+	conf, err := wiresocks.ParseConfig("./stuff/primary/wgcf-profile.ini")
 	if err != nil {
 		return err
 	}
 	conf.Interface.MTU = singleMTU
 
 	for i, peer := range conf.Peers {
+		peer.Endpoint = endpoint
 		peer.Trick = true
 		peer.KeepAlive = 3
 		conf.Peers[i] = peer
@@ -108,13 +118,14 @@ func runWarp(ctx context.Context, l *slog.Logger, bind netip.AddrPort, endpoint 
 }
 
 func runWarpWithPsiphon(ctx context.Context, l *slog.Logger, bind netip.AddrPort, endpoint string, country string) error {
-	conf, err := wiresocks.ParseConfig("./stuff/primary/wgcf-profile.ini", endpoint)
+	conf, err := wiresocks.ParseConfig("./stuff/primary/wgcf-profile.ini")
 	if err != nil {
 		return err
 	}
 	conf.Interface.MTU = singleMTU
 
 	for i, peer := range conf.Peers {
+		peer.Endpoint = endpoint
 		peer.Trick = true
 		peer.KeepAlive = 3
 		conf.Peers[i] = peer
@@ -143,13 +154,14 @@ func runWarpWithPsiphon(ctx context.Context, l *slog.Logger, bind netip.AddrPort
 
 func runWarpInWarp(ctx context.Context, l *slog.Logger, bind netip.AddrPort, endpoints []string) error {
 	// Run outer warp
-	conf, err := wiresocks.ParseConfig("./stuff/primary/wgcf-profile.ini", endpoints[0])
+	conf, err := wiresocks.ParseConfig("./stuff/primary/wgcf-profile.ini")
 	if err != nil {
 		return err
 	}
 	conf.Interface.MTU = singleMTU
 
 	for i, peer := range conf.Peers {
+		peer.Endpoint = endpoints[0]
 		peer.Trick = true
 		peer.KeepAlive = 3
 		conf.Peers[i] = peer
@@ -167,13 +179,14 @@ func runWarpInWarp(ctx context.Context, l *slog.Logger, bind netip.AddrPort, end
 	}
 
 	// Run inner warp
-	conf, err = wiresocks.ParseConfig("./stuff/secondary/wgcf-profile.ini", addr.String())
+	conf, err = wiresocks.ParseConfig("./stuff/secondary/wgcf-profile.ini")
 	if err != nil {
 		return err
 	}
 	conf.Interface.MTU = doubleMTU
 
 	for i, peer := range conf.Peers {
+		peer.Endpoint = addr.String()
 		peer.KeepAlive = 10
 		conf.Peers[i] = peer
 	}
@@ -189,6 +202,27 @@ func runWarpInWarp(ctx context.Context, l *slog.Logger, bind netip.AddrPort, end
 	}
 
 	l.Info("serving proxy", "address", bind)
+	return nil
+}
+
+func runWireguard(ctx context.Context, l *slog.Logger, bind netip.AddrPort, wgConfigPath string) error {
+	conf, err := wiresocks.ParseConfig(wgConfigPath)
+	if err != nil {
+		return err
+	}
+
+	tnet, err := wiresocks.StartWireguard(ctx, l, conf)
+	if err != nil {
+		return err
+	}
+
+	_, err = tnet.StartProxy(bind)
+	if err != nil {
+		return err
+	}
+
+	l.Info("serving proxy", "address", bind)
+
 	return nil
 }
 
