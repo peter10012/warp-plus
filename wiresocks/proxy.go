@@ -15,10 +15,10 @@ import (
 
 // VirtualTun stores a reference to netstack network and DNS configuration
 type VirtualTun struct {
-	Tnet      *netstack.Net
-	Logger    *slog.Logger
-	Dev       *device.Device
-	Ctx       context.Context
+	Tnet   *netstack.Net
+	Logger *slog.Logger
+	Dev    *device.Device
+	Ctx    context.Context
 }
 
 // StartProxy spawns a socks5 server.
@@ -75,9 +75,9 @@ func (vt *VirtualTun) generalHandler(req *statute.ProxyRequest) error {
 	}
 
 	// Close connections and wait for the other copy operation to finish
+	<-done
 	conn.Close()
 	req.Conn.Close()
-	<-done
 
 	return nil
 }
