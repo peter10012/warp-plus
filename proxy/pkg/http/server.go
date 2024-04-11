@@ -239,8 +239,8 @@ func (s *Server) embedHandleHTTP(conn net.Conn, req *http.Request, isConnectMeth
 			s.BytesPool.Put(buf2)
 		}()
 	} else {
-		buf1 = make([]byte, 32*1024)
-		buf2 = make([]byte, 32*1024)
+		buf1 = make([]byte, 2*1024)
+		buf2 = make([]byte, 2*1024)
 	}
 	return statute.Tunnel(s.Context, target, conn, buf1, buf2)
 }

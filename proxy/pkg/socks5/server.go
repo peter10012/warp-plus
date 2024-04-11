@@ -295,8 +295,8 @@ func (s *Server) embedHandleConnect(req *request) error {
 			s.BytesPool.Put(buf2)
 		}()
 	} else {
-		buf1 = make([]byte, 32*1024)
-		buf2 = make([]byte, 32*1024)
+		buf1 = make([]byte, 2*1024)
+		buf2 = make([]byte, 2*1024)
 	}
 	return statute.Tunnel(s.Context, target, req.Conn, buf1, buf2)
 }

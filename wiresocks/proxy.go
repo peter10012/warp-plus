@@ -59,13 +59,15 @@ func (vt *VirtualTun) generalHandler(req *statute.ProxyRequest) error {
 	// Channel to notify when copy operation is done
 	done := make(chan error, 1)
 	// Copy data from req.Conn to conn
+	buf1 := make([]byte, 2*1024)
+	buf2 := make([]byte, 2*1024)
 	go func() {
-		_, err := io.Copy(conn, req.Conn)
+		_, err := io.CopyBuffer(conn, req.Conn, buf1)
 		done <- err
 	}()
 	// Copy data from conn to req.Conn
 	go func() {
-		_, err := io.Copy(req.Conn, conn)
+		_, err := io.CopyBuffer(req.Conn, conn, buf2)
 		done <- err
 	}()
 	// Wait for one of the copy operations to finish
