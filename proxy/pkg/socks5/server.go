@@ -396,6 +396,7 @@ func (s *Server) embedHandleAssociate(req *request, udpConn net.PacketConn) erro
 				s.Logger.Debug(err.Error())
 				continue
 			}
+
 			if targetAddr == nil {
 				targetAddr = &net.UDPAddr{
 					IP:   addr.IP,
@@ -403,10 +404,12 @@ func (s *Server) embedHandleAssociate(req *request, udpConn net.PacketConn) erro
 				}
 				wantTarget = targetAddr.String()
 			}
+
 			if addr.String() != wantTarget {
 				s.Logger.Debug("ignore non-target addresses", "address", addr)
 				continue
 			}
+
 			_, err = udpConn.WriteTo(reader.Bytes(), targetAddr)
 			if err != nil {
 				return err
