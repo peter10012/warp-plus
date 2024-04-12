@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"net/netip"
 	"os"
 	"os/signal"
@@ -20,6 +21,7 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 	"github.com/peterbourgon/ff/v4/ffjson"
+	"github.com/pkg/profile"
 )
 
 var psiphonCountries = []string{
@@ -56,6 +58,11 @@ var psiphonCountries = []string{
 }
 
 func main() {
+	defer profile.Start(profile.MemProfile).Stop()
+	go func() {
+		http.ListenAndServe("127.0.0.1:8880", nil)
+	}()
+
 	fs := ff.NewFlagSet("warp-plus")
 	var (
 		v4       = fs.BoolShort('4', "only use IPv4 for random warp endpoint")

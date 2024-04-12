@@ -13,6 +13,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/peterbourgon/ff/v4 v4.0.0-alpha.4
+	github.com/pkg/profile v1.7.0
 	github.com/quic-go/quic-go v0.40.1
 	github.com/refraction-networking/utls v1.3.3
 	github.com/rodaine/table v1.1.1
@@ -39,6 +40,7 @@ require (
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/dgraph-io/badger v1.5.4-0.20180815194500-3a87f6d9c273 // indirect
 	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102 // indirect
+	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/gaukas/godicttls v0.0.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
