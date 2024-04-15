@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"time"
 
 	"github.com/bepass-org/warp-plus/proxy/pkg/statute"
 )
@@ -350,13 +351,12 @@ func (s *Server) handleAssociate(req *request) error {
 }
 
 func (s *Server) embedHandleAssociate(req *request, udpConn net.PacketConn) error {
-	defer func() {
-		_ = udpConn.Close()
-	}()
+	defer udpConn.Close()
 
 	go func() {
 		var buf [1]byte
 		for {
+			req.Conn.SetReadDeadline(time.Now().Add(15 * time.Second))
 			_, err := req.Conn.Read(buf[:])
 			if err != nil {
 				_ = udpConn.Close()
@@ -375,6 +375,7 @@ func (s *Server) embedHandleAssociate(req *request, udpConn net.PacketConn) erro
 	)
 
 	for {
+		udpConn.SetReadDeadline(time.Now().Add(15 * time.Second))
 		n, addr, err := udpConn.ReadFrom(buf[:])
 		if err != nil {
 			return err

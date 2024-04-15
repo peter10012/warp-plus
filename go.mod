@@ -17,6 +17,7 @@ require (
 	github.com/quic-go/quic-go v0.40.1
 	github.com/refraction-networking/utls v1.3.3
 	github.com/rodaine/table v1.1.1
+	github.com/things-go/go-socks5 v0.0.5
 	golang.org/x/crypto v0.21.0
 	golang.org/x/net v0.22.0
 	golang.org/x/sys v0.18.0
