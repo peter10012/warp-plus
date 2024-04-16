@@ -70,7 +70,7 @@ type SwitchConn struct {
 func NewSwitchConn(conn net.Conn) *SwitchConn {
 	return &SwitchConn{
 		Conn:   conn,
-		Reader: bufio.NewReaderSize(conn, 1500),
+		Reader: bufio.NewReaderSize(conn, 2048),
 	}
 }
 

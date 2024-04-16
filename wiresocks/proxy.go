@@ -11,8 +11,6 @@ import (
 	"github.com/bepass-org/warp-plus/proxy/pkg/statute"
 	"github.com/bepass-org/warp-plus/wireguard/device"
 	"github.com/bepass-org/warp-plus/wireguard/tun/netstack"
-
-	"github.com/things-go/go-socks5/bufferpool"
 )
 
 // VirtualTun stores a reference to netstack network and DNS configuration
@@ -37,7 +35,7 @@ func (vt *VirtualTun) StartProxy(bindAddress netip.AddrPort) (netip.AddrPort, er
 		mixed.WithUserHandler(func(request *statute.ProxyRequest) error {
 			return vt.generalHandler(request)
 		}),
-		mixed.WithBytesPool(bufferpool.NewPool(256*1024)),
+		// mixed.WithBytesPool(bufferpool.NewPool(256*1024)),
 	)
 	go func() {
 		_ = proxy.ListenAndServe()
@@ -62,8 +60,8 @@ func (vt *VirtualTun) generalHandler(req *statute.ProxyRequest) error {
 	// Channel to notify when copy operation is done
 	done := make(chan error, 1)
 	// Copy data from req.Conn to conn
-	buf1 := make([]byte, 2*1024)
-	buf2 := make([]byte, 2*1024)
+	buf1 := make([]byte, 4*1024)
+	buf2 := make([]byte, 4*1024)
 	go func() {
 		_, err := io.CopyBuffer(conn, req.Conn, buf1)
 		done <- err
