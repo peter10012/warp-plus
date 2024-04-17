@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"net"
-	"time"
 
 	"github.com/bepass-org/warp-plus/proxy/pkg/statute"
 )
@@ -236,9 +235,9 @@ func (s *Server) handle(req *request) error {
 }
 
 func (s *Server) handleConnect(req *request) error {
-	if s.UserConnectHandle == nil {
-		return s.embedHandleConnect(req)
-	}
+	// if s.UserConnectHandle == nil {
+	// 	return s.embedHandleConnect(req)
+	// }
 
 	if err := sendReply(req.Conn, successReply, nil); err != nil {
 		return fmt.Errorf("failed to send reply: %v", err)
@@ -261,46 +260,46 @@ func (s *Server) handleConnect(req *request) error {
 	return s.UserConnectHandle(proxyReq)
 }
 
-func (s *Server) embedHandleConnect(req *request) error {
-	defer func() {
-		_ = req.Conn.Close()
-	}()
+// func (s *Server) embedHandleConnect(req *request) error {
+// 	defer func() {
+// 		_ = req.Conn.Close()
+// 	}()
 
-	target, err := s.ProxyDial(s.Context, "tcp", req.DestinationAddr.Address())
-	if err != nil {
-		if err := sendReply(req.Conn, errToReply(err), nil); err != nil {
-			return fmt.Errorf("failed to send reply: %v", err)
-		}
-		return fmt.Errorf("connect to %v failed: %w", req.DestinationAddr, err)
-	}
-	defer func() {
-		_ = target.Close()
-	}()
+// 	target, err := s.ProxyDial(s.Context, "tcp", req.DestinationAddr.Address())
+// 	if err != nil {
+// 		if err := sendReply(req.Conn, errToReply(err), nil); err != nil {
+// 			return fmt.Errorf("failed to send reply: %v", err)
+// 		}
+// 		return fmt.Errorf("connect to %v failed: %w", req.DestinationAddr, err)
+// 	}
+// 	defer func() {
+// 		_ = target.Close()
+// 	}()
 
-	localAddr := target.LocalAddr()
-	local, ok := localAddr.(*net.TCPAddr)
-	if !ok {
-		return fmt.Errorf("connect to %v failed: local address is %s://%s", req.DestinationAddr, localAddr.Network(), localAddr.String())
-	}
-	bind := address{IP: local.IP, Port: local.Port}
-	if err := sendReply(req.Conn, successReply, &bind); err != nil {
-		return fmt.Errorf("failed to send reply: %v", err)
-	}
+// 	localAddr := target.LocalAddr()
+// 	local, ok := localAddr.(*net.TCPAddr)
+// 	if !ok {
+// 		return fmt.Errorf("connect to %v failed: local address is %s://%s", req.DestinationAddr, localAddr.Network(), localAddr.String())
+// 	}
+// 	bind := address{IP: local.IP, Port: local.Port}
+// 	if err := sendReply(req.Conn, successReply, &bind); err != nil {
+// 		return fmt.Errorf("failed to send reply: %v", err)
+// 	}
 
-	var buf1, buf2 []byte
-	if s.BytesPool != nil {
-		buf1 = s.BytesPool.Get()
-		buf2 = s.BytesPool.Get()
-		defer func() {
-			s.BytesPool.Put(buf1)
-			s.BytesPool.Put(buf2)
-		}()
-	} else {
-		buf1 = make([]byte, 4*1024)
-		buf2 = make([]byte, 4*1024)
-	}
-	return statute.Tunnel(s.Context, target, req.Conn, buf1, buf2)
-}
+// 	var buf1, buf2 []byte
+// 	if s.BytesPool != nil {
+// 		buf1 = s.BytesPool.Get()
+// 		buf2 = s.BytesPool.Get()
+// 		defer func() {
+// 			s.BytesPool.Put(buf1)
+// 			s.BytesPool.Put(buf2)
+// 		}()
+// 	} else {
+// 		buf1 = make([]byte, 4*1024)
+// 		buf2 = make([]byte, 4*1024)
+// 	}
+// 	return statute.Tunnel(s.Context, target, req.Conn, buf1, buf2)
+// }
 
 func (s *Server) handleAssociate(req *request) error {
 	destinationAddr := req.DestinationAddr.String()
@@ -321,9 +320,9 @@ func (s *Server) handleAssociate(req *request) error {
 		return fmt.Errorf("failed to send reply: %v", err)
 	}
 
-	if s.UserAssociateHandle == nil {
-		return s.embedHandleAssociate(req, udpConn)
-	}
+	// if s.UserAssociateHandle == nil {
+	// 	return s.embedHandleAssociate(req, udpConn)
+	// }
 
 	cConn := &udpCustomConn{
 		PacketConn:   udpConn,
@@ -350,89 +349,93 @@ func (s *Server) handleAssociate(req *request) error {
 	return s.UserAssociateHandle(proxyReq)
 }
 
-func (s *Server) embedHandleAssociate(req *request, udpConn net.PacketConn) error {
-	defer udpConn.Close()
+// func (s *Server) embedHandleAssociate(req *request, udpConn net.PacketConn) error {
+// 	s.Logger.Debug("EMBED HANDLE ASSOCIATE")
+// 	defer udpConn.Close()
+// 	defer req.Conn.Close()
 
-	go func() {
-		var buf [1]byte
-		for {
-			req.Conn.SetReadDeadline(time.Now().Add(15 * time.Second))
-			_, err := req.Conn.Read(buf[:])
-			if err != nil {
-				_ = udpConn.Close()
-				break
-			}
-		}
-	}()
+// 	go func() {
+// 		var buf [1]byte
+// 		for {
+// 			s.Logger.Debug("ASSOC READ PACKET")
+// 			req.Conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+// 			_, err := req.Conn.Read(buf[:])
+// 			if err != nil {
+// 				udpConn.Close()
+// 				req.Conn.Close()
+// 				break
+// 			}
+// 		}
+// 	}()
 
-	var (
-		sourceAddr  net.Addr
-		wantSource  string
-		targetAddr  net.Addr
-		wantTarget  string
-		replyPrefix []byte
-		buf         [maxUdpPacket]byte
-	)
+// 	var (
+// 		sourceAddr  net.Addr
+// 		wantSource  string
+// 		targetAddr  net.Addr
+// 		wantTarget  string
+// 		replyPrefix []byte
+// 		buf         [maxUdpPacket]byte
+// 	)
 
-	for {
-		udpConn.SetReadDeadline(time.Now().Add(15 * time.Second))
-		n, addr, err := udpConn.ReadFrom(buf[:])
-		if err != nil {
-			return err
-		}
+// 	for {
+// 		udpConn.SetReadDeadline(time.Now().Add(15 * time.Second))
+// 		n, addr, err := udpConn.ReadFrom(buf[:])
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if sourceAddr == nil {
-			sourceAddr = addr
-			wantSource = sourceAddr.String()
-		}
+// 		if sourceAddr == nil {
+// 			sourceAddr = addr
+// 			wantSource = sourceAddr.String()
+// 		}
 
-		gotAddr := addr.String()
-		if wantSource == gotAddr {
-			if n < 3 {
-				continue
-			}
-			reader := bytes.NewBuffer(buf[3:n])
-			addr, err := readAddr(reader)
-			if err != nil {
-				s.Logger.Debug(err.Error())
-				continue
-			}
+// 		gotAddr := addr.String()
+// 		if wantSource == gotAddr {
+// 			if n < 3 {
+// 				continue
+// 			}
+// 			reader := bytes.NewBuffer(buf[3:n])
+// 			addr, err := readAddr(reader)
+// 			if err != nil {
+// 				s.Logger.Debug(err.Error())
+// 				continue
+// 			}
 
-			if targetAddr == nil {
-				targetAddr = &net.UDPAddr{
-					IP:   addr.IP,
-					Port: addr.Port,
-				}
-				wantTarget = targetAddr.String()
-			}
+// 			if targetAddr == nil {
+// 				targetAddr = &net.UDPAddr{
+// 					IP:   addr.IP,
+// 					Port: addr.Port,
+// 				}
+// 				wantTarget = targetAddr.String()
+// 			}
 
-			if addr.String() != wantTarget {
-				s.Logger.Debug("ignore non-target addresses", "address", addr)
-				continue
-			}
+// 			if addr.String() != wantTarget {
+// 				s.Logger.Debug("ignore non-target addresses", "address", addr)
+// 				continue
+// 			}
 
-			_, err = udpConn.WriteTo(reader.Bytes(), targetAddr)
-			if err != nil {
-				return err
-			}
-		} else if targetAddr != nil && wantTarget == gotAddr {
-			if replyPrefix == nil {
-				b := bytes.NewBuffer(make([]byte, 3, 16))
-				err = writeAddrWithStr(b, wantTarget)
-				if err != nil {
-					return err
-				}
-				replyPrefix = b.Bytes()
-			}
-			copy(buf[len(replyPrefix):len(replyPrefix)+n], buf[:n])
-			copy(buf[:len(replyPrefix)], replyPrefix)
-			_, err = udpConn.WriteTo(buf[:len(replyPrefix)+n], sourceAddr)
-			if err != nil {
-				return err
-			}
-		}
-	}
-}
+// 			_, err = udpConn.WriteTo(reader.Bytes(), targetAddr)
+// 			if err != nil {
+// 				return err
+// 			}
+// 		} else if targetAddr != nil && wantTarget == gotAddr {
+// 			if replyPrefix == nil {
+// 				b := bytes.NewBuffer(make([]byte, 3, 16))
+// 				err = writeAddrWithStr(b, wantTarget)
+// 				if err != nil {
+// 					return err
+// 				}
+// 				replyPrefix = b.Bytes()
+// 			}
+// 			copy(buf[len(replyPrefix):len(replyPrefix)+n], buf[:n])
+// 			copy(buf[:len(replyPrefix)], replyPrefix)
+// 			_, err = udpConn.WriteTo(buf[:len(replyPrefix)+n], sourceAddr)
+// 			if err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
+// }
 
 func sendReply(w io.Writer, resp reply, addr *address) error {
 	_, err := w.Write([]byte{socks5Version, byte(resp), 0})
