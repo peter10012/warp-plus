@@ -15,6 +15,10 @@ type Server struct {
 	// bind is the address to listen on
 	Bind string
 
+	Username string
+
+	Password string
+
 	Listener net.Listener
 
 	// ProxyDial specifies the optional proxyDial function for

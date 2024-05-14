@@ -14,7 +14,9 @@ import (
 // Server is accepting connections and handling the details of the SOCKS5 protocol
 type Server struct {
 	// bind is the address to listen on
-	Bind string
+	Bind     string
+	Username string
+	Password string
 
 	Listener net.Listener
 
@@ -41,6 +43,8 @@ type Server struct {
 func NewServer(options ...ServerOption) *Server {
 	s := &Server{
 		Bind:                 statute.DefaultBindAddress,
+		Username:             statute.DefaultUsername,
+		Password:             statute.DefaultPassword,
 		ProxyDial:            statute.DefaultProxyDial(),
 		ProxyListenPacket:    statute.DefaultProxyListenPacket(),
 		PacketForwardAddress: defaultReplyPacketForwardAddress,
@@ -157,7 +161,7 @@ func WithBytesPool(bytesPool statute.BytesPool) ServerOption {
 	}
 }
 
-func (s *Server) ServeConn(conn net.Conn) error {
+func (s *Server) confirmAuthMethod(conn net.Conn) error {
 	version, err := readByte(conn)
 	if err != nil {
 		return err
@@ -166,18 +170,23 @@ func (s *Server) ServeConn(conn net.Conn) error {
 		return fmt.Errorf("unsupported SOCKS version: %d", version)
 	}
 
-	req := &request{
-		Version: socks5Version,
-		Conn:    conn,
+	nMethod, err := readByte(conn)
+	if nil != err {
+		return err
 	}
 
-	methods, err := readBytes(conn)
-	if err != nil {
+	methods, err := readByteN(conn, int(nMethod))
+	if nil != err {
 		return err
 	}
 
 	if bytes.IndexByte(methods, byte(noAuth)) != -1 {
 		_, err := conn.Write([]byte{socks5Version, byte(noAuth)})
+		if err != nil {
+			return err
+		}
+	} else if bytes.IndexByte(methods, byte(userAuth)) != -1 {
+		_, err := conn.Write([]byte{socks5Version, byte(userAuth)})
 		if err != nil {
 			return err
 		}
@@ -187,6 +196,65 @@ func (s *Server) ServeConn(conn net.Conn) error {
 			return err
 		}
 		return errNoSupportedAuth
+	}
+	return nil
+}
+
+func (s *Server) AuthUserPassword(conn net.Conn) error {
+	version, err := readByte(conn)
+	if err != nil {
+		return err
+	}
+	if version != socks5Version {
+		return fmt.Errorf("unsupported SOCKS version: %d", version)
+	}
+
+	nUsername, err := readByte(conn)
+	if nil != err {
+		return err
+	}
+	username, err := readByteN(conn, int(nUsername))
+	if nil != err {
+		return err
+	}
+
+	nPassword, err := readByte(conn)
+	if nil != err {
+		return err
+	}
+	password, err := readByteN(conn, int(nPassword))
+	if nil != err {
+		return err
+	}
+
+	if string(username) != statute.DefaultUsername || string(password) != statute.DefaultPassword {
+		_, err := conn.Write([]byte{socks5Version, byte(UnAuthed)})
+		if err != nil {
+			return err
+		}
+		return errUnAuthenticated
+	} else {
+		_, err := conn.Write([]byte{socks5Version, byte(Authed)})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func (s *Server) ServeConn(conn net.Conn) error {
+	err := s.confirmAuthMethod(conn)
+	if nil != err {
+		return err
+	}
+	err = s.AuthUserPassword(conn)
+	if nil != err {
+		return err
+	}
+
+	req := &request{
+		Version: socks5Version,
+		Conn:    conn,
 	}
 
 	var header [3]byte

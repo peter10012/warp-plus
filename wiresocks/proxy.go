@@ -44,6 +44,7 @@ func StartProxy(ctx context.Context, l *slog.Logger, tnet *netstack.Net, bindAdd
 		mixed.WithListener(ln),
 		mixed.WithLogger(l),
 		mixed.WithContext(ctx),
+		mixed.WithAuth(statute.DefaultUsername, statute.DefaultPassword),
 		mixed.WithUserHandler(func(request *statute.ProxyRequest) error {
 			return vt.generalHandler(request)
 		}),

@@ -17,6 +17,17 @@ func WithBindAddress(binAddress string) Option {
 	}
 }
 
+func WithAuth(username, password string) Option {
+	return func(p *Proxy) {
+		p.socks5Proxy.Username = username
+		p.socks5Proxy.Password = password
+		p.socks4Proxy.Username = username
+		p.socks4Proxy.Password = password
+		p.httpProxy.Username = username
+		p.httpProxy.Password = password
+	}
+}
+
 func WithListener(ln net.Listener) Option {
 	return func(p *Proxy) {
 		p.listener = ln

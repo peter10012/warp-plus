@@ -15,6 +15,7 @@ import (
 var (
 	errStringTooLong        = errors.New("string too long")
 	errNoSupportedAuth      = errors.New("no supported authentication mechanism")
+	errUnAuthenticated      = errors.New("username or password not correct")
 	errUnrecognizedAddrType = errors.New("unrecognized address type")
 )
 
@@ -29,6 +30,11 @@ const (
 const (
 	ConnectCommand   Command = 0x01
 	AssociateCommand Command = 0x03
+)
+
+const (
+	Authed   = 0x0
+	UnAuthed = 0x1
 )
 
 // Command is a SOCKS Command.
@@ -137,6 +143,7 @@ type authMethod byte
 
 const (
 	noAuth       authMethod = 0x00 // no authentication required
+	userAuth     authMethod = 0x02 // required user password
 	noAcceptable authMethod = 0xff // no acceptable authentication methods
 )
 
@@ -162,6 +169,15 @@ func readBytes(r io.Reader) ([]byte, error) {
 // 	_, err = w.Write(b)
 // 	return err
 // }
+
+func readByteN(r io.Reader, n int) ([]byte, error) {
+	buf := make([]byte, n)
+	_, err := r.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
 
 func readByte(r io.Reader) (byte, error) {
 	var buf [1]byte

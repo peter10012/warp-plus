@@ -4,8 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 )
+
+func init() {
+	fmt.Printf("proxy username: %s, password: %s\n", DefaultUsername, DefaultPassword)
+}
 
 type Logger interface {
 	Debug(v ...interface{})
@@ -73,4 +78,18 @@ func DefaultContext() context.Context {
 	return context.Background()
 }
 
+func randomString(length int) string {
+	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 const DefaultBindAddress = "127.0.0.1:1080"
+
+var (
+	DefaultUsername = randomString(8)
+	DefaultPassword = randomString(16)
+)
